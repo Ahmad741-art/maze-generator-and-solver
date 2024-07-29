@@ -1,0 +1,148 @@
+import tkinter as tk
+from tkinter import ttk
+import random
+
+class MazeApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Maze Generator and Solver")
+
+        self.canvas = tk.Canvas(root, width=600, height=600, bg="white")
+        self.canvas.pack()
+
+        self.cell_size = 20
+        self.rows = self.cols = 30
+        self.maze = [[1] * self.cols for _ in range(self.rows)]
+
+        self.start = None
+        self.end = None
+        self.is_drawing = False
+
+        self.create_ui()
+        self.generate_maze()
+
+        self.canvas.bind("<Button-1>", self.on_click)
+
+    def create_ui(self):
+        toolbar = ttk.Frame(self.root)
+        toolbar.pack(side=tk.TOP, fill=tk.X)
+
+        generate_button = ttk.Button(toolbar, text="Generate Maze", command=self.generate_maze)
+        generate_button.pack(side=tk.LEFT, padx=2, pady=2)
+
+        solve_button = ttk.Button(toolbar, text="Solve Maze", command=self.solve_maze)
+        solve_button.pack(side=tk.LEFT, padx=2, pady=2)
+
+        clear_button = ttk.Button(toolbar, text="Clear", command=self.clear_canvas)
+        clear_button.pack(side=tk.LEFT, padx=2, pady=2)
+
+    def generate_maze(self):
+        self.start = None
+        self.end = None
+        self.maze = [[1] * self.cols for _ in range(self.rows)]
+        self.carve_passages_from(0, 0)
+        self.draw_maze()
+
+    def carve_passages_from(self, cx, cy):
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        random.shuffle(directions)
+        for dx, dy in directions:
+            nx, ny = cx + dx * 2, cy + dy * 2
+            if 0 <= nx < self.cols and 0 <= ny < self.rows and self.maze[ny][nx] == 1:
+                self.maze[cy + dy][cx + dx] = 0
+                self.maze[ny][nx] = 0
+                self.carve_passages_from(nx, ny)
+
+    def draw_maze(self):
+        self.canvas.delete("all")
+        for row in range(self.rows):
+            for col in range(self.cols):
+                x1 = col * self.cell_size
+                y1 = row * self.cell_size
+                x2 = x1 + self.cell_size
+                y2 = y1 + self.cell_size
+                color = "black" if self.maze[row][col] == 1 else "white"
+                self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="gray")
+
+    def on_click(self, event):
+        row = event.y // self.cell_size
+        col = event.x // self.cell_size
+        if self.maze[row][col] == 0:
+            if not self.start:
+                self.start = (row, col)
+                self.highlight_cell(self.start, "green")
+            elif not self.end:
+                self.end = (row, col)
+                self.highlight_cell(self.end, "red")
+            else:
+                self.clear_highlights()
+                self.start = (row, col)
+                self.end = None
+                self.highlight_cell(self.start, "green")
+
+    def highlight_cell(self, position, color):
+        row, col = position
+        x1 = col * self.cell_size
+        y1 = row * self.cell_size
+        x2 = x1 + self.cell_size
+        y2 = y1 + self.cell_size
+        self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="gray")
+
+    def clear_highlights(self):
+        self.draw_maze()
+        if self.start:
+            self.highlight_cell(self.start, "green")
+        if self.end:
+            self.highlight_cell(self.end, "red")
+
+    def solve_maze(self):
+        if not self.start or not self.end:
+            return
+
+        start, end = self.start, self.end
+        queue = [start]
+        visited = set()
+        parent = {start: None}
+
+        while queue:
+            current = queue.pop(0)
+            if current == end:
+                break
+            for neighbor in self.get_neighbors(current):
+                if neighbor not in visited and self.maze[neighbor[0]][neighbor[1]] == 0:
+                    visited.add(neighbor)
+                    queue.append(neighbor)
+                    parent[neighbor] = current
+
+        path = []
+        step = end
+        while step:
+            path.append(step)
+            step = parent[step]
+
+        path.reverse()
+        self.clear_highlights()
+        for cell in path:
+            self.highlight_cell(cell, "blue")
+        self.highlight_cell(self.start, "green")
+        self.highlight_cell(self.end, "red")
+
+    def get_neighbors(self, position):
+        row, col = position
+        neighbors = []
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            r, c = row + dr, col + dc
+            if 0 <= r < self.rows and 0 <= c < self.cols:
+                neighbors.append((r, c))
+        return neighbors
+
+    def clear_canvas(self):
+        self.canvas.delete("all")
+        self.start = None
+        self.end = None
+        self.generate_maze()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = MazeApp(root)
+    root.mainloop()
