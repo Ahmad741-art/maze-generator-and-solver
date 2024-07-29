@@ -1,1 +1,1 @@
-# maze-generator-and-solver
+# maze-generator-with-solver
