@@ -9,7 +9,7 @@ This application generates a random maze, allows the user to set start and end p
     - `tkinter` is used for creating the graphical user interface (GUI).
     - `random` is used to help generate a random maze.
 
-2. **MazeApp Class**:
+2. **MazeApp Class** :
     - This class contains all the methods and functionalities for the maze application.
 
 3. **Initialization (`__init__` method)**:
